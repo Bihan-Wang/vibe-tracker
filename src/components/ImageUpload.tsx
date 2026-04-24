@@ -143,7 +143,7 @@ export default function ImageUpload({ onAnalysisComplete, onUploadComplete }: Im
         ? generateImageDescription(imageFeatures, uploadResult.description || '')
         : cleanDescription;
 
-      // Analyze image (don't send technical features)
+      // Analyze image (send image features for accurate analysis)
       const analyzeResponse = await fetch('/api/analyze-image', {
         method: 'POST',
         headers: {
@@ -152,6 +152,7 @@ export default function ImageUpload({ onAnalysisComplete, onUploadComplete }: Im
         body: JSON.stringify({
           imageUrl: uploadResult.imageUrl,
           description: descriptionForApi,
+          imageFeatures, // ← send client-side features for fallback
         }),
       });
 
