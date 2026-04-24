@@ -131,7 +131,7 @@ export default function ImageUpload({ onAnalysisComplete, onUploadComplete }: Im
 
       if (!uploadResponse.ok) {
         const errorData = await uploadResponse.json();
-        throw new Error(errorData.error || '图片上传失败');
+        throw new Error(errorData.details || errorData.error || '图片上传失败');
       }
 
       const uploadResult = await uploadResponse.json();
@@ -158,7 +158,7 @@ export default function ImageUpload({ onAnalysisComplete, onUploadComplete }: Im
 
       if (!analyzeResponse.ok) {
         const errorData = await analyzeResponse.json();
-        throw new Error(errorData.error || '图片分析失败');
+        throw new Error(errorData.details || errorData.error || '图片分析失败');
       }
 
       const analyzeResult = await analyzeResponse.json();
