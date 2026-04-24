@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { v2 as cloudinary } from 'cloudinary';
 
 // Maximum file size (5MB)
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -15,9 +12,15 @@ const ALLOWED_FILE_TYPES = [
   'image/gif',
 ];
 
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 export async function POST(request: NextRequest) {
   try {
-    // Check if request contains form data
     const contentType = request.headers.get('content-type') || '';
     if (!contentType.includes('multipart/form-data')) {
       return NextResponse.json(
@@ -52,43 +55,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert File to Buffer
+    // Convert File to base64 for Cloudinary upload
     const bytes = await imageFile.arrayBuffer();
     const buffer = Buffer.from(bytes);
+    const base64 = buffer.toString('base64');
+    const dataUri = `data:${imageFile.type};base64,${base64}`;
 
-    // Generate unique filename
-    const fileExtension = imageFile.name.split('.').pop() || 'jpg';
-    const fileName = `${uuidv4()}.${fileExtension}`;
+    // Upload to Cloudinary
+    const result = await cloudinary.uploader.upload(dataUri, {
+      folder: 'vibe-tracker',
+      resource_type: 'image',
+    });
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
-    }
-
-    // Save file
-    const filePath = path.join(uploadsDir, fileName);
-    await writeFile(filePath, buffer);
-
-    // Generate public URL
-    const imageUrl = `/uploads/${fileName}`;
-
-    // Generate simple description based on file info
-    const description = `上传的图片: ${imageFile.name} (${(imageFile.size / 1024).toFixed(0)}KB)`;
+    // Generate description
+    const ctx = result.context as Record<string, string> | undefined;
+    const description = ctx?.caption || `上传的图片: ${imageFile.name}`;
 
     console.log('Image uploaded successfully:', {
-      fileName,
+      publicId: result.public_id,
       fileSize: imageFile.size,
-      fileType: imageFile.type,
-      imageUrl,
+      imageUrl: result.secure_url,
     });
 
     return NextResponse.json({
       success: true,
-      imageUrl,
-      fileName,
+      imageUrl: result.secure_url,
+      publicId: result.public_id,
+      fileName: imageFile.name,
       fileSize: imageFile.size,
       fileType: imageFile.type,
+      width: result.width,
+      height: result.height,
       description,
       uploadedAt: new Date().toISOString(),
     });
@@ -106,7 +103,6 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(_request: NextRequest) {
-  // The request parameter is intentionally unused for this GET endpoint
   void _request;
   return NextResponse.json({
     message: 'Vibe Tracker 图片上传API',
@@ -118,13 +114,6 @@ export async function GET(_request: NextRequest) {
       maxFileSize: '5MB',
       allowedTypes: ALLOWED_FILE_TYPES,
     },
-    exampleRequest: {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      body: 'FormData with "image" field',
-    },
-    note: '上传的图片将保存在public/uploads目录中，并可通过生成的URL访问。',
+    note: '图片将通过Cloudinary托管。',
   });
 }

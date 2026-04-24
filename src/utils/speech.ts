@@ -12,13 +12,8 @@ export function isSpeechRecognitionSupported(): boolean {
   );
 }
 
-// Declare SpeechRecognition interface for TypeScript
-declare global {
-  interface Window {
-    webkitSpeechRecognition?: new () => SpeechRecognition;
-    SpeechRecognition?: new () => SpeechRecognition;
-  }
-}
+// Type declaration — merged with useSpeechRecognition.ts
+// Note: global Window augmentation is done in useSpeechRecognition.ts
 
 interface SpeechRecognition extends EventTarget {
   continuous: boolean;

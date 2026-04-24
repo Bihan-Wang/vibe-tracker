@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { ImageFeatures } from '@/utils/image-analysis';
 
 export interface MoodEntry {
   id: string;
@@ -12,8 +13,10 @@ export interface MoodEntry {
   moodScore: number;
   tags: string[];
   aiInsights?: string;
+  quote?: string;
   audioUrl?: string;
   imageUrl?: string;
+  imageFeatures?: ImageFeatures;
 }
 
 interface MoodState {
@@ -46,7 +49,7 @@ export const useMoodStore = create<MoodState>()(
           content: 'Had a really productive day at work! Finished all my tasks ahead of schedule.',
           mood: 'Happy',
           moodScore: 9,
-          tags: ['work', 'productivity', 'success'],
+          tags: ['工作', '效率', '成就'],
           aiInsights: 'High energy and positivity detected. The focus on accomplishment suggests satisfaction with progress.',
         },
         {
@@ -56,7 +59,7 @@ export const useMoodStore = create<MoodState>()(
           content: 'Feeling calm after my morning meditation session.',
           mood: 'Calm',
           moodScore: 8,
-          tags: ['meditation', 'mindfulness', 'morning'],
+          tags: ['冥想', '正念', '早晨'],
           aiInsights: 'Consistent morning routine appears to boost calmness levels. Consider extending meditation time for even better results.',
         },
         {
@@ -66,7 +69,7 @@ export const useMoodStore = create<MoodState>()(
           content: 'Beautiful sunset walk with friends.',
           mood: 'Content',
           moodScore: 8.5,
-          tags: ['nature', 'friends', 'exercise'],
+          tags: ['自然', '友情', '运动'],
           aiInsights: 'Social connection and physical activity combined for positive mood boost. This pattern has been consistent in your entries.',
         },
       ],

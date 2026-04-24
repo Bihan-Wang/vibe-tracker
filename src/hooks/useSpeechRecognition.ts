@@ -2,11 +2,6 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 
-interface SpeechRecognitionResult {
-  transcript: string;
-  confidence: number;
-}
-
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;
   resultIndex: number;
@@ -25,6 +20,7 @@ interface SpeechRecognition extends EventTarget {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
+  maxAlternatives: number;
   onstart: (() => void) | null;
   onend: (() => void) | null;
   onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
@@ -34,10 +30,6 @@ interface SpeechRecognition extends EventTarget {
   abort: () => void;
 }
 
-interface SpeechRecognitionErrorEvent extends Event {
-  error: string;
-  message: string;
-}
 
 interface SpeechRecognitionResultList {
   length: number;
@@ -409,7 +401,7 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}):
       console.log('Already recording, stopping current recording first');
       try {
         // Stop current recording
-        recognitionRef.current.stop();
+        recognitionRef.current!.stop();
         // Don't restart automatically - let user click again to start fresh
         console.log('Stopped current recording. Click again to start fresh.');
         return;
@@ -425,7 +417,7 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}):
       finalTranscriptRef.current = '';
       setTranscript('');
 
-      recognitionRef.current.start();
+      recognitionRef.current!.start();
       console.log('Speech recognition started successfully');
     } catch (err) {
       console.error('Failed to start recording:', err);

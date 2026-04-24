@@ -21,16 +21,17 @@ interface Analysis {
 interface VoiceRecorderProps {
   onTranscript?: (text: string) => void;
   onAnalysisComplete?: (analysis: Analysis) => void;
+  compactMode?: boolean;
 }
 
-export default function VoiceRecorder({ onTranscript, onAnalysisComplete }: VoiceRecorderProps) {
+export default function VoiceRecorder({ onTranscript, onAnalysisComplete, compactMode = false }: VoiceRecorderProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [waveformData, setWaveformData] = useState<number[]>([]);
   const [showBrowserWarning, setShowBrowserWarning] = useState(false);
   const [recordingQuality, setRecordingQuality] = useState<{ score: number; feedback: string[] } | null>(null);
   const [highlightUnsupported, setHighlightUnsupported] = useState(false);
-  const [language, setLanguage] = useState('en-US');
+  const [language, setLanguage] = useState('zh-CN');
   const availableLanguages = getAvailableLanguages();
 
   // Use ref for recording duration to avoid re-creating callbacks
@@ -233,6 +234,92 @@ export default function VoiceRecorder({ onTranscript, onAnalysisComplete }: Voic
     language
   });
 
+  // Compact mode for tab navigation
+  if (compactMode) {
+    return (
+      <div className="glassmorphism-colorful dark:glassmorphism-dark rounded-3xl p-6">
+        <div className="flex flex-col items-center justify-center">
+          {/* Main recording button container */}
+          <div className="relative mb-6">
+            {/* Ripple rings (recording only) */}
+            {isRecording && (
+              <>
+                <div className="ripple-ring" />
+                <div className="ripple-ring" />
+                <div className="ripple-ring" />
+              </>
+            )}
+            <button
+              onClick={isRecording ? handleStopRecording : handleStartRecording}
+              disabled={isProcessing || !isSupported}
+              className={`w-32 h-32 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 ${
+                isRecording
+                  ? 'bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600'
+                  : isProcessing
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 opacity-50 cursor-not-allowed animate-shrink-away'
+                    : !isSupported
+                      ? 'bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700'
+                      : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 animate-breathe'
+              }`}
+            >
+              {isRecording ? (
+                <Square className="w-16 h-16 text-white" />
+              ) : isProcessing ? (
+                <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : !isSupported ? (
+                <AlertCircle className="w-16 h-16 text-white" />
+              ) : (
+                <Mic className="w-16 h-16 text-white" />
+              )}
+            </button>
+          </div>
+
+          {/* Status text */}
+          <p className="text-lg text-gray-700 dark:text-gray-300 text-center mb-4">
+            {isRecording
+              ? '正在录音...请说出您的感受'
+              : isProcessing
+                ? '分析中...'
+                : !isSupported
+                  ? '语音识别不支持'
+                  : '点击麦克风开始录音'}
+          </p>
+
+          {/* Recording duration */}
+          {isRecording && (
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+              <span className="text-lg font-medium text-red-600 dark:text-red-400">
+                {formatDuration(recordingDuration)}
+              </span>
+            </div>
+          )}
+
+          {/* Simple transcript display */}
+          {transcript && !isRecording && (
+            <div className="mt-6 w-full">
+              <div className="p-4 bg-white/50 dark:bg-black/30 rounded-xl border border-gray-200 dark:border-gray-700">
+                <p className="text-gray-700 dark:text-gray-300 text-center leading-relaxed">
+                  "{transcript}"
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Error display (simplified) */}
+          {error && (
+            <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/30 rounded-xl">
+              <p className="text-sm text-red-700 dark:text-red-300 text-center">
+                {error}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Full mode (original)
   return (
     <div className="glassmorphism dark:glassmorphism-dark rounded-2xl p-6 hover:glassmorphism-hover dark:hover:glassmorphism-dark-hover transition-all duration-300">
       {/* Browser compatibility warning */}
@@ -319,9 +406,9 @@ export default function VoiceRecorder({ onTranscript, onAnalysisComplete }: Voic
             {isRecording ? (
               <Mic className="text-red-500 animate-pulse" />
             ) : (
-              <Mic className="text-blue-500" />
+              <Mic className="text-amber-500" />
             )}
-            Voice Recording
+            语音记录
           </h3>
           <div className="flex items-center gap-4">
             {isRecording && (
@@ -345,7 +432,7 @@ export default function VoiceRecorder({ onTranscript, onAnalysisComplete }: Voic
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
             <Globe className="w-4 h-4" />
-            <span>Language:</span>
+            <span>语言：</span>
           </div>
           <select
             value={language}
@@ -362,8 +449,7 @@ export default function VoiceRecorder({ onTranscript, onAnalysisComplete }: Voic
         </div>
         <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
           <p>
-            💡 <span className="font-medium">Note:</span> Voice recognition supports multiple languages.
-            Mood analysis currently works best with English. Full multilingual analysis will be available in Phase 2 with OpenAI integration.
+            💡 <span className="font-medium">提示：</span>语音识别支持多种语言。如果需要使用其他语言识别，可以在上方切换。
           </p>
         </div>
       </div>
@@ -376,7 +462,7 @@ export default function VoiceRecorder({ onTranscript, onAnalysisComplete }: Voic
               {waveformData.map((value, index) => (
                 <div
                   key={index}
-                  className="w-2 bg-gradient-to-t from-blue-400 to-purple-400 rounded-t-sm transition-all duration-300"
+                  className="w-2 bg-gradient-to-t from-amber-400 to-orange-400 rounded-t-sm transition-all duration-300"
                   style={{
                     height: `${value * 100}%`,
                     animation: `wave ${0.5 + index * 0.05}s ease-in-out infinite alternate`,
@@ -395,36 +481,48 @@ export default function VoiceRecorder({ onTranscript, onAnalysisComplete }: Voic
       )}
 
       <div className="flex flex-col items-center justify-center py-6">
-        <button
-          onClick={isRecording ? handleStopRecording : handleStartRecording}
-          disabled={isProcessing}
-          className={`w-28 h-28 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 ${
-            isRecording
-              ? 'bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600'
-              : !isSupported
-                ? 'bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700'
-                : 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
-          } ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-          {isRecording ? (
-            <Square className="w-12 h-12 text-white" />
-          ) : isProcessing ? (
-            <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
-          ) : !isSupported ? (
-            <AlertCircle className="w-12 h-12 text-white" />
-          ) : (
-            <Mic className="w-12 h-12 text-white" />
+        <div className="relative mb-4">
+          {/* Ripple rings (recording only) */}
+          {isRecording && (
+            <>
+              <div className="ripple-ring" />
+              <div className="ripple-ring" />
+              <div className="ripple-ring" />
+            </>
           )}
-        </button>
+          <button
+            onClick={isRecording ? handleStopRecording : handleStartRecording}
+            disabled={isProcessing}
+            className={`w-28 h-28 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 ${
+              isRecording
+                ? 'bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600'
+                : isProcessing
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 opacity-50 cursor-not-allowed animate-shrink-away'
+                  : !isSupported
+                    ? 'bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700'
+                    : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 animate-breathe'
+            }`}
+          >
+            {isRecording ? (
+              <Square className="w-12 h-12 text-white" />
+            ) : isProcessing ? (
+              <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+            ) : !isSupported ? (
+              <AlertCircle className="w-12 h-12 text-white" />
+            ) : (
+              <Mic className="w-12 h-12 text-white" />
+            )}
+          </button>
+        </div>
 
         <p className="mt-4 text-gray-600 dark:text-gray-300 text-center">
           {isRecording
-            ? 'Speak now... I\'m listening!'
+            ? '正在录音，请说出您的感受...'
             : isProcessing
-              ? 'Analyzing your mood...'
+              ? '正在分析情绪...'
               : !isSupported
-                ? 'Voice recording not available'
-                : 'Tap to record your thoughts'}
+                ? '语音识别不可用'
+                : '点击麦克风开始录音'}
         </p>
 
         {/* Test button for debugging */}
@@ -433,17 +531,16 @@ export default function VoiceRecorder({ onTranscript, onAnalysisComplete }: Voic
             onClick={handleTestClick}
             className="px-4 py-2 text-sm bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-800 transition border border-blue-300 dark:border-blue-700 font-medium"
           >
-            🔧 Test Click (Debug)
+            🔧 测试点击（调试）
           </button>
           <p className="text-xs text-gray-500 dark:text-gray-400 text-center max-w-xs">
-            Click this test button first to verify basic functionality.
-            Then try the main microphone button.
+            先点击此按钮确认基本功能正常，再尝试使用麦克风按钮。
           </p>
         </div>
 
         {recordingDuration > 0 && !isRecording && (
           <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-            Recorded for {formatDuration(recordingDuration)}
+            录音时长 {formatDuration(recordingDuration)}
           </div>
         )}
 
@@ -451,7 +548,7 @@ export default function VoiceRecorder({ onTranscript, onAnalysisComplete }: Voic
         {recordingQuality && (
           <div className="mt-6 w-full">
             <div className="flex items-center justify-between mb-2">
-              <h4 className="font-medium text-gray-700 dark:text-gray-300">Recording Quality</h4>
+              <h4 className="font-medium text-gray-700 dark:text-gray-300">录音质量</h4>
               <div className="flex items-center gap-2">
                 <div className="text-lg font-bold text-gray-800 dark:text-white">
                   {recordingQuality.score.toFixed(1)}/10
@@ -482,19 +579,19 @@ export default function VoiceRecorder({ onTranscript, onAnalysisComplete }: Voic
         {transcript && (
           <div className="mt-8 w-full">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-gray-700 dark:text-gray-300">Transcript</h4>
+              <h4 className="font-medium text-gray-700 dark:text-gray-300">转录文本</h4>
               <button
                 onClick={resetTranscript}
                 className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
               >
-                Clear
+                清除
               </button>
             </div>
             <div className="p-4 bg-white/50 dark:bg-black/30 rounded-lg border border-gray-200 dark:border-gray-700">
               <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{transcript}</p>
               <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {transcript.split(' ').length} words
+                  {transcript.length} 字
                 </span>
                 <span className="text-xs text-gray-500 dark:text-gray-400">
                   {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -506,23 +603,23 @@ export default function VoiceRecorder({ onTranscript, onAnalysisComplete }: Voic
       </div>
 
       <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-        <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">Tips for best results:</h4>
+        <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">录音提示：</h4>
         <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
           <li className="flex items-start gap-2">
             <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5"></div>
-            <span>Speak clearly and at a natural pace in a quiet environment</span>
+            <span>在安静的环境中，用自然的语速清晰地说话</span>
           </li>
           <li className="flex items-start gap-2">
             <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5"></div>
-            <span>Record for 30-60 seconds for the most accurate mood analysis</span>
+            <span>录音30-60秒可以获得最准确的情绪分析</span>
           </li>
           <li className="flex items-start gap-2">
             <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5"></div>
-            <span>Describe specific events and how they made you feel</span>
+            <span>描述具体的事件以及它们带给您的感受</span>
           </li>
           <li className="flex items-start gap-2">
             <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5"></div>
-            <span>Allow microphone access when prompted by your browser</span>
+            <span>浏览器提示时请允许麦克风访问权限</span>
           </li>
         </ul>
       </div>
